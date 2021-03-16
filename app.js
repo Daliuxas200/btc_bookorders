@@ -1,32 +1,37 @@
 const websocket = require('websocket-stream');
 const request = require('request');
-const fs = require('fs');
+// const fs = require('fs');
 const moment = require('moment');
 
+const config = require('./config.js')();
+const { Client } = require('pg');
+const db = new Client(config['db']);
+db.connect();
+
+var args = process.argv.slice(2);
+
 //Settings for running
-let emitPeriodMinutes = 30;
+let emitPeriodMinutes = parseInt(args[1]);
 let maxRetry = 10;
 let retryAfter = 5000; // ms
 
 let retryCount = 0;
 
-// important to create writeStream outside so that it wont overwrite file after restart
-let myFile = fs.createWriteStream('data.csv');
-
+symbol = args[0];
 function start(){
 
-    let depthReadableStream  = websocket('wss://stream.binance.com:9443/ws/btcusdt@depth@1000ms')
+    let depthReadableStream  = websocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@depth@1000ms`)
     let book = {};
     let askedForSnapshot = false;
 
     // writing data to file at set intervals
     let writeIntervalID = setInterval(()=>{
-        book && myFile.write(JSON.stringify(book)+'\n');
-        console.log(`Wrote to file on: ${moment().format()} , Data collection duration: ${moment(book.lastTimestamp).diff(moment(book.firstTimestamp),'minutes')} minutes`);
+        // book && myFile.write(JSON.stringify(book)+'\n');
+        book && db.query('INSERT INTO binance_order_book (symbol, response) VALUES ($1,$2)', [symbol, JSON.stringify(book)]);
+        console.log(`Wrote to DB on: ${moment().format()} , Data collection duration: ${moment(book.lastTimestamp).diff(moment(book.firstTimestamp),'minutes')} minutes`);
     },1000*60*emitPeriodMinutes);
 
     depthReadableStream.on('data', data => {
-
         // if succesful data, reset Retries;
         retryCount = 0;
 
@@ -103,7 +108,7 @@ function start(){
     // Function for getting the snapshot of the Book 
     function getBookSnapshot(){
         askedForSnapshot = true;
-        request('https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=1000',{ json: true }, (err, res, body) => {
+        request(`https://api.binance.com/api/v3/depth?symbol=${symbol.toUpperCase()}&limit=1000`,{ json: true }, (err, res, body) => {
             if (err) { 
                 return console.log(err); 
             }
