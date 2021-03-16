@@ -2,7 +2,7 @@ const websocket = require('websocket-stream');
 const request = require('request');
 const fs = require('fs');
 
-let myFile = fs.createWriteStream('myOutput.csv');
+let myFile = fs.createWriteStream('data.csv');
 setInterval(()=>{
     book && myFile.write(JSON.stringify(book)+'\n');
     console.log('wrote to file');
