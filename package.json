@@ -4,6 +4,7 @@
   "description": "beep boop",
   "main": "app.js",
   "dependencies": {
+    "moment": "^2.29.1",
     "request": "^2.88.2",
     "websocket-stream": "^5.5.2"
   },
