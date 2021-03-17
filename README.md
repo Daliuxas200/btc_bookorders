@@ -1,2 +1,6 @@
-If needed change the emit period for data and tweak retry parameters.
-Default emit period 30mins
+Usage:
+
+```
+# node app.js <pair> <db sync period in min>
+node app.js ethusdt 5
+```
