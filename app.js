@@ -141,18 +141,18 @@ function start(){
 
     // Function for resetting stream
     function resetStream(){
-        setTimeout(()=>{
-            if(retryCount<maxRetry){
-                console.log(`Resetting and attempting to restart Stream. Attempt ${retryCount}`);
-                depthReadableStream.destroy();
-                retryCount++;
-                clearInterval(writeIntervalID);
-                start();
-            } else {
-                console.log('Max retries. Stopping :(')
+        // setTimeout(()=>{
+        //     if(retryCount<maxRetry){
+        //         console.log(`Resetting and attempting to restart Stream. Attempt ${retryCount}`);
+        //         depthReadableStream.destroy();
+        //         retryCount++;
+        //         clearInterval(writeIntervalID);
+        //         start();
+        //     } else {
+        //         console.log('Max retries. Stopping :(')
                 process.exit();
-            }
-        },retryAfter)
+            // }
+        // },retryAfter)
     }
 
     // Function for getting the snapshot of the Book 
