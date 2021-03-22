@@ -65,53 +65,57 @@ function start(){
         let depth = JSON.parse(data.toString());
 
         // Check if a book object has been initiated with data and for data continuity based on first/last update ID in the diffs.
-        if(book && ((depth.U <= book.lastUpdateId+1) && (depth.u >= book.lastUpdateId+1) || book.lastUpdateId+1 === depth.U)){
+        if(depth.e === 'depthUpdate'){
+            if(book && ((depth.U <= book.lastUpdateId+1) && (depth.u >= book.lastUpdateId+1) || book.lastUpdateId+1 === depth.U)){
 
-            // loop the diffs to update/add any entries in the current version our book object
-            for(let askDiff of depth.a){
-                let found = false;
-                book.asks = book.asks.map(a => {
-                    if(a[0] === askDiff[0]){
-                        found = true;
-                        return askDiff;
-                    } else {
-                        return a;
-                    }
-                })
-                if(!found && parseFloat(askDiff[1])!==0) book.asks.push(askDiff)
+                // loop the diffs to update/add any entries in the current version our book object
+                for(let askDiff of depth.a){
+                    let found = false;
+                    book.asks = book.asks.map(a => {
+                        if(a[0] === askDiff[0]){
+                            found = true;
+                            return askDiff;
+                        } else {
+                            return a;
+                        }
+                    })
+                    if(!found && parseFloat(askDiff[1])!==0) book.asks.push(askDiff)
+                }
+                for(let bidDiff of depth.b){
+                    let found = false;
+                    book.bids = book.bids.map(b=>{
+                        if(b[0] === bidDiff[0]){
+                            found = true;
+                            return bidDiff;
+                        } else {
+                            return b;
+                        }
+                    })
+                    if(!found && parseFloat(bidDiff[1])!==0) book.bids.push(bidDiff)
+                }
+                // filter out any values with 0.00 quantity
+                book.bids = book.bids.filter(b=>parseFloat(b[1])!==0);
+                book.asks = book.asks.filter(a=>parseFloat(a[1])!==0);
+
+                // update the book lastUpadteId to match that of the latest Diff, also update the timestamp of latest data entry.
+                book.lastUpdateId = depth.u;
+                book.lastTimestamp = moment();
+
+                // calculating totals for Bids and Asks in BTC, spam console.
+                let totalAsks = book.asks.reduce((a,c)=>parseFloat(c[1])+a,0).toFixed(2);
+                let totalBids = book.bids.reduce((a,c)=>parseFloat(c[1])+a,0).toFixed(2);
+                console.log(`Depth update received: Total Bids:${totalBids}, Total Asks:${totalAsks}`);
+
+            // Else if book exists but our updates have skipped over our books timeline, reset the process
+            } else if(book && depth.U > book.lastUpdateId+1){
+                console.log('Depth update missed : resetting Book');
+                askedForSnapshot = false;
+                book = {};
+            } else {
+                console.log('Book snapshot missing or depth update data anomaly');
             }
-            for(let bidDiff of depth.b){
-                let found = false;
-                book.bids = book.bids.map(b=>{
-                    if(b[0] === bidDiff[0]){
-                        found = true;
-                        return bidDiff;
-                    } else {
-                        return b;
-                    }
-                })
-                if(!found && parseFloat(bidDiff[1])!==0) book.bids.push(bidDiff)
-            }
-            // filter out any values with 0.00 quantity
-            book.bids = book.bids.filter(b=>parseFloat(b[1])!==0);
-            book.asks = book.asks.filter(a=>parseFloat(a[1])!==0);
-
-            // update the book lastUpadteId to match that of the latest Diff, also update the timestamp of latest data entry.
-            book.lastUpdateId = depth.u;
-            book.lastTimestamp = moment();
-
-            // calculating totals for Bids and Asks in BTC, spam console.
-            let totalAsks = book.asks.reduce((a,c)=>parseFloat(c[1])+a,0).toFixed(2);
-            let totalBids = book.bids.reduce((a,c)=>parseFloat(c[1])+a,0).toFixed(2);
-            console.log(`Depth update received: Total Bids:${totalBids}, Total Asks:${totalAsks}`);
-
-        // Else if book exists but our updates have skipped over our books timeline, reset the process
-        } else if(book && depth.U > book.lastUpdateId+1){
-            console.log('Depth update missed : resetting Book');
-            askedForSnapshot = false;
-            book = {};
         } else {
-            console.log('Book snapshot missing or depth update data anomaly');
+            console.log(depth);
         }
         
     })
